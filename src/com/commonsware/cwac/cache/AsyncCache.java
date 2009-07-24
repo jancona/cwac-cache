@@ -17,8 +17,9 @@ package com.commonsware.cwac.cache;
 import android.content.Intent;
 import android.util.Log;
 import java.io.File;
-import java.lang.ref.SoftReference;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import com.commonsware.cwac.bus.AbstractBus;
 import com.commonsware.cwac.task.AsyncTaskEx;
 
@@ -34,31 +35,36 @@ abstract public class AsyncCache<K, V, B extends AbstractBus, M> {
 	private static String TAG="AsyncCache";
 	private File cacheRoot=null;
 	private B bus=null;
-	private ConcurrentHashMap<K, SoftReference<V>> cache=
-					new ConcurrentHashMap<K, SoftReference<V>>();
+	private int maxSize=0;
+	private Map<K, V> cache=Collections.synchronizedMap(new LinkedHashMap<K, V>(101, .75F, true) {
+		protected boolean removeEldestEntry(Map.Entry eldest) {  
+			return(size()>maxSize);  
+		}  
+  });
 	
-	public AsyncCache(File cacheRoot, B bus,
-										DiskCachePolicy policy) {
+	public AsyncCache(File cacheRoot, B bus, DiskCachePolicy policy,
+										int maxSize) {
 		this.cacheRoot=cacheRoot;
 		this.bus=bus;
+		this.maxSize=maxSize;
 		
 		new CacheCleanTask().execute(policy);
 	}
 	
 	public V get(K key, M message) {
-		SoftReference<V> ref=cache.get(key);
+		V result=cache.get(key);
 		
-		if (ref==null || ref.get()==null) {
-			ref=new SoftReference<V>(create(key, message, FORCE_NONE));
-			cache.put(key, ref);
+		if (result==null) {
+			result=create(key, message, FORCE_NONE);
+			cache.put(key, result);
 		}
 		
-		return(ref.get());
+		return(result);
 	}
 	
 	public void forceLoad(K key, M message, int forceStyle) {
 		cache.remove(key);
-		create(key, message, forceStyle);	// force a new async entry
+		cache.put(key, create(key, message, forceStyle));
 	}
 	
 	public int getStatus(K key) {
@@ -70,7 +76,7 @@ abstract public class AsyncCache<K, V, B extends AbstractBus, M> {
 	}
 	
 	protected void put(K key, V value) {
-		cache.put(key, new SoftReference<V>(value));
+		cache.put(key, value);
 	}
 	
 	public void remove(K key) {

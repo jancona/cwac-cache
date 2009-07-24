@@ -70,8 +70,9 @@ public class WebImageCache
 	
 	public WebImageCache(File cacheRoot, SimpleBus bus,
 											 AsyncCache.DiskCachePolicy policy,
+											 int maxSize,
 											 Drawable placeholder) {
-		super(cacheRoot, bus, policy);
+		super(cacheRoot, bus, policy, maxSize);
 		
 		this.placeholder=placeholder;
 	}

@@ -51,7 +51,7 @@ public class Application extends android.app.Application {
 		if (cache==null) {
 			placeholder=getResources()
 												.getDrawable(R.drawable.placeholder);
-			cache=new WebImageCache(getCacheDir(), bus, policy,
+			cache=new WebImageCache(getCacheDir(), bus, policy, 101,
 															placeholder);
 		}
 		

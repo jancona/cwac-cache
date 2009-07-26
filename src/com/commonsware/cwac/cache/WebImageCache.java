@@ -116,7 +116,7 @@ public class WebImageCache
 	public int getStatus(String key) {
 		int result=super.getStatus(key);
 		
-		if (result==CACHE_NONE) {
+		if (result==CACHE_NONE && getCacheRoot()!=null) {
 			try {
 				File cache=buildCachedImagePath(key);
 				
@@ -134,18 +134,23 @@ public class WebImageCache
 	
 	protected Drawable create(String key, Bundle message,
 														int forceStyle) {
-		try {
-			File cache=buildCachedImagePath(key);
-			
-			if (cache.exists() && forceStyle==FORCE_NONE) {
-				return(new BitmapDrawable(cache.getAbsolutePath()));
+		if (getCacheRoot()!=null) {
+			try {
+				File cache=buildCachedImagePath(key);
+				
+				if (cache.exists() && forceStyle==FORCE_NONE) {
+					return(new BitmapDrawable(cache.getAbsolutePath()));
+				}
+				else {
+					new FetchImageTask().execute(message, key, cache);
+				}
 			}
-			else {
-				new FetchImageTask().execute(message, key, cache);
+			catch (Throwable t) {
+				Log.e(TAG, "Exception loading image", t);
 			}
 		}
-		catch (Throwable t) {
-			Log.e(TAG, "Exception loading image", t);
+		else {
+			new FetchImageTask().execute(message, key, null);
 		}
 		
 		return(placeholder);
@@ -188,11 +193,13 @@ public class WebImageCache
 					getBus().send(message);
 				}
 				
-				FileOutputStream file=new FileOutputStream(cache);
-				
-				file.write(raw);
-				file.flush();
-				file.close();
+				if (cache!=null) {
+					FileOutputStream file=new FileOutputStream(cache);
+					
+					file.write(raw);
+					file.flush();
+					file.close();
+				}
 			}
 			catch (Throwable t) {
 				Log.e(TAG, "Exception downloading image", t);

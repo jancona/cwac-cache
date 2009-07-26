@@ -48,7 +48,9 @@ abstract public class AsyncCache<K, V, B extends AbstractBus, M> {
 		this.bus=bus;
 		this.maxSize=maxSize;
 		
-		new CacheCleanTask().execute(policy);
+		if (cacheRoot!=null) {
+			new CacheCleanTask().execute(policy);
+		}
 	}
 	
 	public V get(K key, M message) {

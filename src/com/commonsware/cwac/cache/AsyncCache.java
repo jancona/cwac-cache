@@ -21,106 +21,37 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import com.commonsware.cwac.bus.AbstractBus;
-import com.commonsware.cwac.task.AsyncTaskEx;
 
-abstract public class AsyncCache<K, V, B extends AbstractBus, M> {
+abstract public class AsyncCache<K, V, B extends AbstractBus, M>
+	extends CacheBase<K,V> {
 	protected abstract V create(K key, M message, int forceStyle);
 	
-	public static final int CACHE_MEMORY=1;
-	public static final int CACHE_DISK=2;
-	public static final int CACHE_NONE=3;
-	public static final int FORCE_NONE=1;
-	public static final int FORCE_SOFT=2;
-	public static final int FORCE_HARD=3;
 	private static String TAG="AsyncCache";
-	private File cacheRoot=null;
 	private B bus=null;
-	private int maxSize=0;
-	private Map<K, V> cache=Collections.synchronizedMap(new LinkedHashMap<K, V>(101, .75F, true) {
-		protected boolean removeEldestEntry(Map.Entry eldest) {  
-			return(size()>maxSize);  
-		}  
-  });
 	
 	public AsyncCache(File cacheRoot, B bus, DiskCachePolicy policy,
 										int maxSize) {
-		this.cacheRoot=cacheRoot;
+		super(cacheRoot, policy, maxSize);
 		this.bus=bus;
-		this.maxSize=maxSize;
-		
-		if (cacheRoot!=null) {
-			new CacheCleanTask().execute(policy);
-		}
 	}
 	
 	public V get(K key, M message) {
-		V result=cache.get(key);
+		V result=super.get(key);
 		
 		if (result==null) {
 			result=create(key, message, FORCE_NONE);
-			cache.put(key, result);
+			super.put(key, result);
 		}
 		
 		return(result);
 	}
 	
 	public void forceLoad(K key, M message, int forceStyle) {
-		cache.remove(key);
-		cache.put(key, create(key, message, forceStyle));
-	}
-	
-	public int getStatus(K key) {
-		if (cache.containsKey(key)) {
-			return(CACHE_MEMORY);
-		}
-		
-		return(CACHE_NONE);
-	}
-	
-	protected void put(K key, V value) {
-		cache.put(key, value);
-	}
-	
-	public void remove(K key) {
-		cache.remove(key);
+		super.remove(key);
+		super.put(key, create(key, message, forceStyle));
 	}
 	
 	protected B getBus() {
 		return(bus);
-	}
-	
-	protected File getCacheRoot() {
-		return(cacheRoot);
-	}
-	
-	public interface DiskCachePolicy {
-		boolean eject(File cachedFile);
-	}
-	
-	class CacheCleanTask extends AsyncTaskEx<DiskCachePolicy, Void, Void> {
-		@Override
-		protected Void doInBackground(DiskCachePolicy... policies) {
-			try {
-				walkDir(cacheRoot, policies[0]);
-			}
-			catch (Throwable t) {
-				Log.e(TAG, "Exception cleaning cache", t);
-			}
-			
-			return(null);
-		}
-
-		void walkDir(File dir, DiskCachePolicy policy) {
-      if (dir.isDirectory()) {
-        String[] children=dir.list();
-    
-		    for (int i=0; i<children.length; i++) {
-          walkDir(new File(dir, children[i]), policy);
-        }
-      }
-			else if (policy.eject(dir)) {
-				dir.delete();
-      }
-    }
 	}
 }

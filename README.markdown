@@ -38,6 +38,10 @@ Version
 This is version 0.1 of this module, meaning it is pretty darn
 new.
 
+Note that this module is undergoing some serious refactoring,
+and so it is likely to massively change over the next month
+or so.
+
 Demo
 ----
 In the `com.commonsware.cwac.cache.demo` package you will find

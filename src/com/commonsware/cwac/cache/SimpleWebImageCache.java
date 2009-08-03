@@ -184,10 +184,10 @@ public class SimpleWebImageCache<B extends AbstractBus, M>
 			try {
 				put(url, new BitmapDrawable(cache.getAbsolutePath()));
 				
-				Bundle message=(Bundle)params[0];
+//				M message=(M)params[0];
 				
-				if (message!=null) {
-					bus.send(message);
+				if (params[0]!=null) {
+					bus.send(params[0]);
 				}
 			}
 			catch (Throwable t) {

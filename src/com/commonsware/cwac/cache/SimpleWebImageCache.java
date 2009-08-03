@@ -40,13 +40,13 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLConnection;
 import java.security.MessageDigest;
-import com.commonsware.cwac.bus.SimpleBus;
+import com.commonsware.cwac.bus.AbstractBus;
 import com.commonsware.cwac.task.AsyncTaskEx;
 
-public class SimpleWebImageCache extends CacheBase<String, Drawable> {
-	public static final String URL="u";
+public class SimpleWebImageCache<B extends AbstractBus, M>
+	extends CacheBase<String, Drawable> {
 	private static final String TAG="SimpleWebImageCache";
-	private SimpleBus bus=null;
+	private B bus=null;
 	
 	static public File buildCachedImagePath(File cacheRoot, String url)
 		throws Exception {
@@ -71,7 +71,7 @@ public class SimpleWebImageCache extends CacheBase<String, Drawable> {
 	public SimpleWebImageCache(File cacheRoot,
 														 AsyncCache.DiskCachePolicy policy,
 														 int maxSize,
-														 SimpleBus bus) {
+														 B bus) {
 		super(cacheRoot, policy, maxSize);
 		
 		this.bus=bus;
@@ -106,10 +106,8 @@ public class SimpleWebImageCache extends CacheBase<String, Drawable> {
 		return(buildCachedImagePath(getCacheRoot(), url));
 	}
 	
-	public void notify(String key, Bundle message)
+	public void notify(String key, M message)
 		throws Exception {
-		message.putString(URL, key);
-		
 		int status=getStatus(key);
 		
 		if (status==CACHE_NONE) {
@@ -125,7 +123,7 @@ public class SimpleWebImageCache extends CacheBase<String, Drawable> {
 		}
 	}
 	
-	public SimpleBus getBus() {
+	public B getBus() {
 		return(bus);
 	}
 	
@@ -155,7 +153,7 @@ public class SimpleWebImageCache extends CacheBase<String, Drawable> {
 				
 				put(url, new BitmapDrawable(new ByteArrayInputStream(raw)));
 				
-				Bundle message=(Bundle)params[0];
+				M message=(M)params[0];
 				
 				if (message!=null) {
 					bus.send(message);
